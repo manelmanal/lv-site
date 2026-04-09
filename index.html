@@ -3,39 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>A small question for you ✨</title>
+  <title>Une petite question... ✨</title>
   <style>
+    /* 1. Style de base et fond animé */
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       text-align: center;
-      background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
       height: 100vh;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       margin: 0;
-      overflow: hidden;
+      overflow: hidden; /* Empêche les barres de défilement pendant la pluie de cœurs */
       color: white;
     }
 
-    h1 { 
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-      padding: 20px;
-      z-index: 10;
+    /* 2. Style du conteneur principal */
+    .container {
+      z-index: 10; /* Pour être au-dessus des cœurs */
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      padding: 40px;
+      border-radius: 30px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      max-width: 80%;
     }
 
+    /* Effet d'apparition pour le conteneur final */
+    .container.final-active {
+        animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+        0% { transform: scale(0); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    h1 { 
+      font-size: 2.5rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+      margin-bottom: 30px;
+    }
+
+    /* 3. Style des boutons */
     .buttons { 
-      margin-top: 20px; 
-      z-index: 10;
       display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
+      gap: 20px;
       justify-content: center;
+      align-items: center;
+      position: relative; /* Important pour le bouton "No" absolu */
+      height: 100px; /* Espace pour que le bouton No bouge un peu */
     }
 
     button {
-      padding: 15px 30px;
+      padding: 15px 35px;
       border: none;
       border-radius: 50px;
       font-size: 18px;
@@ -56,134 +81,167 @@
     }
 
     #no { 
-      background-color: #ffffff; 
+      background-color: white; 
       color: #ff4d6d; 
-      position: absolute;
+      position: absolute; /* Pour pouvoir le déplacer n'importe où */
+      z-index: 11;
     }
 
+    /* Boutons de questions intermédiaires */
+    .btn-choice {
+        background-color: #ff85a1;
+        color: white;
+        margin: 10px;
+        width: 100%;
+        max-width: 300px;
+    }
+    .btn-choice:hover {
+        background-color: #ffafcc;
+        transform: translateY(-3px);
+    }
+
+    /* 4. Style pour la pluie de cœurs géants */
     .heart {
       position: absolute;
-      color: #ff4d6d;
-      font-size: 20px;
-      user-select: none;
-      pointer-events: none;
-      animation: float 4s linear forwards;
+      pointer-events: none; /* Les cœurs ne bloquent pas les clics */
+      animation: floatUp 4s linear forwards;
       z-index: 1;
     }
 
-    @keyframes float {
-      0% { transform: translateY(100vh) rotate(0deg); opacity: 1; }
-      100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+    @keyframes floatUp {
+      0% { transform: translateY(100vh) rotate(0deg) scale(1); opacity: 1; }
+      100% { transform: translateY(-10vh) rotate(360deg) scale(1.5); opacity: 0; }
     }
 
-    .final-card {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        padding: 40px;
-        border-radius: 30px;
-        border: 2px solid white;
-        animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    @keyframes pop {
-        0% { transform: scale(0); }
-        100% { transform: scale(1); }
-    }
   </style>
 </head>
 <body>
 
-<div id="main-container">
-    <h1 id="question-text">Do you have feelings for me? 💖</h1>
-    <div class="buttons" id="btn-container">
-        <button id="yes" onclick="nextQuestion()">Yes</button>
-        <button id="no" onmouseover="moveButton()">No</button>
+<div class="container" id="main-box">
+    <h1 id="question-text">Est-ce que tu penses à moi parfois ? 😏</h1>
+    <div class="buttons" id="btn-group">
+        <button id="yes" onclick="nextStep(2)">Évidemment !</button>
+        <button id="no" onmouseover="moveNo()">Non.</button>
     </div>
 </div>
 
 <script>
-let yesSize = 18;
-let currentStep = 1;
+let yesSize = 18; // Taille initiale du bouton 'Oui'
+let heartInterval; // Pour contrôler la pluie de cœurs
 
-// 1. Fonction pour faire fuir le bouton "No"
-function moveButton() {
-    const btnNo = document.getElementById('no');
-    const btnYes = document.getElementById('yes');
-    
-    // Calcul de positions aléatoires
-    const x = Math.random() * (window.innerWidth - btnNo.offsetWidth);
-    const y = Math.random() * (window.innerHeight - btnNo.offsetHeight);
-    
-    btnNo.style.left = x + 'px';
-    btnNo.style.top = y + 'px';
+// --- FONCTIONS INTERACTIVES ---
 
-    // Faire grossir le bouton "Yes" pour forcer le destin !
+// 1. Fait fuir le bouton "Non" et grossir le bouton "Oui"
+function moveNo() {
+    const noBtn = document.getElementById('no');
+    const yesBtn = document.getElementById('yes');
+    
+    // Calcule des positions aléatoires dans la fenêtre
+    // On garde une marge pour ne pas qu'il sorte de l'écran
+    const padding = 50;
+    const x = Math.random() * (window.innerWidth - noBtn.offsetWidth - padding * 2) + padding;
+    const y = Math.random() * (window.innerHeight - noBtn.offsetHeight - padding * 2) + padding;
+    
+    noBtn.style.left = x + 'px';
+    noBtn.style.top = y + 'px';
+    
+    // Fait grossir le bouton 'Oui'
     yesSize += 10;
-    btnYes.style.fontSize = yesSize + 'px';
-    btnYes.style.padding = (yesSize/2 + 5) + 'px ' + (yesSize + 10) + 'px';
+    yesBtn.style.fontSize = yesSize + 'px';
+    // Ajuste le padding pour qu'il reste proportionné
+    yesBtn.style.padding = (15 + yesSize/10) + 'px ' + (35 + yesSize/5) + 'px';
 }
 
-// 2. Gestion des étapes
-function nextQuestion() {
-    currentStep++;
-    const container = document.getElementById('main-container');
+// 2. Gère les étapes des questions
+function nextStep(step) {
+    const box = document.getElementById('main-box');
     
-    if(currentStep === 2) {
-        container.innerHTML = `
-            <h1>How strong are your feelings for me? 🌹</h1>
-            <div class="buttons">
-                <button id="yes" onclick="nextQuestion()">They are genuine and strong</button>
-                <button id="yes" onclick="nextQuestion()">They grow more every day</button>
-                <button id="yes" onclick="nextQuestion()">Stronger than I expected</button>
-            </div>
-        `;
-    } else if(currentStep === 3) {
-        container.innerHTML = `
-            <h1>What makes you feel this way? ✨</h1>
-            <div class="buttons">
-                <button id="yes" onclick="nextQuestion()">Your personality and kindness</button>
-                <button id="yes" onclick="nextQuestion()">The way you make me feel</button>
-                <button id="yes" onclick="nextQuestion()">Everything about you</button>
-            </div>
-        `;
-    } else if(currentStep === 4) {
-        showFinal();
-    }
+    // Effet de transition fluide
+    box.style.opacity = '0';
+    
+    setTimeout(() => {
+        if (step === 2) {
+            box.innerHTML = `
+                <h1>Si on devait sortir, on irait où ? 🍕</h1>
+                <div class="buttons-list">
+                    <button class="btn-choice" onclick="nextStep(3)">Un resto chic (je paie !)</button>
+                    <button class="btn-choice" onclick="nextStep(3)">Netflix & Pizza 🍕</button>
+                    <button class="btn-choice" onclick="nextStep(3)">Une balade sous les étoiles ✨</button>
+                </div>
+            `;
+        } else if (step === 3) {
+            box.innerHTML = `
+                <h1>Avoue... je suis ton/ta préféré(e) ? 😇</h1>
+                <div class="buttons-list">
+                    <button class="btn-choice" onclick="showFinal()">De loin !</button>
+                    <button class="btn-choice" onclick="showFinal()">Peut-être bien...</button>
+                </div>
+            `;
+        }
+        box.style.opacity = '1';
+    }, 300);
 }
 
-// 3. Écran final (Remplacement de la vidéo)
+// 3. Affiche l'écran final (PLUS DE VIDÉO !)
 function showFinal() {
-    const container = document.getElementById('main-container');
-    container.innerHTML = `
-        <div class="final-card">
-            <h1>That means a lot to me ❤️</h1>
-            <p style="font-size: 1.5rem;">I just wanted to know how you feel...</p>
-            <p style="font-size: 1.2rem; font-style: italic;">Thank you for being so honest with your heart! ✨</p>
-            <button id="yes" onclick="location.reload()" style="font-size: 16px;">Recommencer</button>
-        </div>
-    `;
+    const box = document.getElementById('main-box');
     
-    // Explosion de coeurs plus intense à la fin
-    for(let i=0; i<50; i++) {
-        setTimeout(createHeart, i * 50);
-    }
+    // Effet de transition fluide
+    box.style.opacity = '0';
+    
+    setTimeout(() => {
+        box.classList.add('final-active'); // Active l'animation d'apparition
+        box.innerHTML = `
+            <h1 style="font-size: 3.5rem; color: #ff4d6d;">YAY ! 🎉</h1>
+            <p style="font-size: 1.8rem; color: #333; margin-bottom: 10px;">Tu viens de rendre ma journée 1000x meilleure.</p>
+            <p style="font-size: 1.4rem; color: #555; font-style: italic;">Prépare-toi, le meilleur est à venir ! ❤️</p>
+            <br>
+            <button id="yes" onclick="location.reload()" style="font-size: 16px;">Recommencer</button>
+        `;
+        box.style.opacity = '1';
+        
+        // 4. PLUIE DE CŒURS GÉANTE ET INTENSE
+        // On arrête la pluie normale
+        clearInterval(heartInterval);
+        // On lance une explosion massive de 100 cœurs
+        for(let i=0; i<100; i++) {
+            // Un petit délai entre chaque cœur pour l'effet "explosion"
+            setTimeout(spawnHeart, i * 20); 
+        }
+    }, 300);
 }
 
-// 4. Animation des coeurs en arrière-plan
-function createHeart() {
+// --- SYSTÈME DE PLUIE DE CŒURS ---
+
+// Crée un seul cœur géant et animé
+function spawnHeart() {
     const heart = document.createElement('div');
     heart.className = 'heart';
-    heart.innerHTML = ['❤️', '💖', '💗', '💕', '🌸'][Math.floor(Math.random() * 5)];
+    
+    // Choisit un emoji au hasard
+    const emojis = ['❤️', '💖', '💗', '💕', '🌸', '✨'];
+    heart.innerHTML = emojis[Math.floor(Math.random() * emojis.length)];
+    
+    // Position horizontale aléatoire
     heart.style.left = Math.random() * 100 + 'vw';
-    heart.style.fontSize = (Math.random() * 20 + 15) + 'px';
-    heart.style.animationDuration = (Math.random() * 3 + 2) + 's';
+    
+    // Taille aléatoire mais GÉANTE
+    const size = Math.random() * 40 + 30; // Entre 30px et 70px
+    heart.style.fontSize = size + 'px';
+    
+    // Durée d'animation aléatoire pour plus de naturel
+    heart.style.animationDuration = (Math.random() * 2 + 3) + 's'; // Entre 3s et 5s
+    
     document.body.appendChild(heart);
-
-    setTimeout(() => { heart.remove(); }, 4000);
+    
+    // Supprime le cœur après l'animation pour ne pas alourdir la page
+    setTimeout(() => {
+        heart.remove();
+    }, 5000);
 }
 
-// Générer des coeurs en continu
-setInterval(createHeart, 400);
+// Lance la pluie de cœurs normale au chargement
+heartInterval = setInterval(spawnHeart, 400); // Un cœur toutes les 0.4 secondes
 
 </script>
 
