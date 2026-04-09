@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Une question du cœur... ✨</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+      background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      overflow: hidden;
+      color: white;
+    }
+
+    .container {
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(15px);
+      padding: 30px;
+      border-radius: 25px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      max-width: 85%;
+      width: 400px;
+    }
+
+    h1 { font-size: 1.8rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); margin-bottom: 25px; }
+
+    .buttons { display: flex; flex-direction: column; gap: 15px; align-items: center; position: relative; }
+
+    button {
+      padding: 15px 25px;
+      border: none;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      width: 100%;
+    }
+
+    #yes { background: #ff4d6d; color: white; box-shadow: 0 4px 15px rgba(255, 77, 109, 0.4); }
+    #no { background: white; color: #ff4d6d; position: absolute; width: 100px; z-index: 20; }
+
+    .btn-choice { background: rgba(255, 255, 255, 0.9); color: #ff4d6d; }
+    .btn-choice:hover { background: white; transform: scale(1.05); }
+
+    .heart {
+      position: absolute;
+      pointer-events: none;
+      animation: floatUp 4s linear forwards;
+      z-index: 1;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(100vh) rotate(0deg) scale(1); opacity: 1; }
+      100% { transform: translateY(-10vh) rotate(360deg) scale(1.5); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container" id="main-box">
+    <h1 id="text">Est-ce que tu penses à moi parfois ? 😏</h1>
+    <div class="buttons" id="btn-group">
+        <button id="yes" onclick="nextStep(2, 'Pense à moi: Oui')">Évidemment !</button>
+        <button id="no" onmouseover="moveNo()">Non.</button>
+    </div>
+</div>
+
+<script>
+let responses = {}; // Pour stocker les réponses
+let yesSize = 16;
+
+// --- CONFIGURATION FORMSSPREE ---
+const FORMSPREE_URL = "METS_TON_LIEN_FORMSPREE_ICI"; 
+
+function moveNo() {
+    const noBtn = document.getElementById('no');
+    const x = Math.random() * (window.innerWidth - 150);
+    const y = Math.random() * (window.innerHeight - 100);
+    noBtn.style.left = x + 'px';
+    noBtn.style.top = y + 'px';
+    
+    yesSize += 8;
+    document.getElementById('yes').style.fontSize = yesSize + 'px';
+}
+
+function nextStep(step, lastChoice) {
+    responses[`Question_${step-1}`] = lastChoice;
+    const box = document.getElementById('main-box');
+    box.style.opacity = '0';
+
+    setTimeout(() => {
+        if (step === 2) {
+            box.innerHTML = `
+                <h1>Ila kant ghalta ou tbe3tini f'moshkil, tji m3aya wla ddi? 🥺</h1>
+                <div class="buttons">
+                    <button class="btn-choice" onclick="nextStep(3, 'Soutien: Tji m3aya dima')">Nji m3ak wakha t'ghalti ❤️</button>
+                    <button class="btn-choice" onclick="nextStep(3, 'Soutien: Ddi')">Ddi hit l'haq houwa l'haq</button>
+                </div>
+            `;
+        } else if (step === 3) {
+            box.innerHTML = `
+                <h1>Chno l'haja li katkhallik t'frah m3aya? ✨</h1>
+                <div class="buttons">
+                    <button class="btn-choice" onclick="nextStep(4, 'Bonheur: Personality')">Dahka dialek w hbalek</button>
+                    <button class="btn-choice" onclick="nextStep(4, 'Bonheur: Feelings')">L'ahsas li katen3tini</button>
+                    <button class="btn-choice" onclick="nextStep(4, 'Bonheur: Everything')">Kolchi fik bla t'ghyir</button>
+                </div>
+            `;
+        } else if (step === 4) {
+            box.innerHTML = `
+                <h1>Hada houwa l'ikhtibar l'akhir: On scelle ça ? ❤️</h1>
+                <div class="buttons">
+                    <button id="yes" onclick="sendData()">OUI ! Envoie mon message</button>
+                </div>
+            `;
+        }
+        box.style.opacity = '1';
+    }, 300);
+}
+
+function sendData() {
+    // Envoi des réponses à ton email via Formspree
+    fetch(FORMSPREE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(responses)
+    }).then(() => showFinal());
+}
+
+function showFinal() {
+    const box = document.getElementById('main-box');
+    box.style.opacity = '0';
+    setTimeout(() => {
+        box.innerHTML = `
+            <h1 style="color: #ff4d6d;">Réponse envoyée ! 💌</h1>
+            <p style="color: #333; font-weight: bold;">Choukran hit kounti sarih(a) m3aya ❤️</p>
+            <p style="color: #555;">Je vais lire tes réponses tout de suite...</p>
+        `;
+        box.style.opacity = '1';
+        for(let i=0; i<80; i++) setTimeout(spawnHeart, i * 20);
+    }, 300);
+}
+
+function spawnHeart() {
+    const heart = document.createElement('div');
+    heart.className = 'heart';
+    heart.innerHTML = ['❤️', '💖', '✨', '🌸'][Math.floor(Math.random()*4)];
+    heart.style.left = Math.random() * 100 + 'vw';
+    heart.style.fontSize = Math.random() * 30 + 20 + 'px';
+    heart.style.animationDuration = Math.random() * 2 + 2 + 's';
+    document.body.appendChild(heart);
+    setTimeout(() => heart.remove(), 4000);
+}
+
+setInterval(spawnHeart, 500);
+</script>
+
+</body>
+</html>
